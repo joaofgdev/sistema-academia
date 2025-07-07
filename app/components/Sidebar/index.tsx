@@ -13,7 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onMenuItemClick }) => 
   const menuItems = [
     { name: 'INADIMPLENTES', href: '/inadimplentes' },
     { name: 'ALUNOS', href: '/' },
-    { name: 'CADASTRO', href: '/Cadastro' }, // CORRIGIDO: rota correta da página de cadastro
+    { name: 'CADASTRO', href: '/Cadastro' },
   ];
 
   return (
