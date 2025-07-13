@@ -18,7 +18,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-screen overflow-hidden">
       {/* Lado esquerdo: Formulário */}
-      <div className="w-full lg:w-2/5 flex flex-col justify-center items-center p-8 bg-white rounded-r-[50px]">
+      <div className="w-full lg:w-2/5 flex flex-col justify-center items-center p-8 bg-white">
         <Image
           src="/images/logo.png"
           alt="Logo Studio Duo"
