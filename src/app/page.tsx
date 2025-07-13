@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import RenewButton from './components/RenewButton'; // Importa o componente do botão Renovar
+import RenewButton from '../components/RenewButton'; // Importa o componente do botão Renovar
 
 // Componente de título simples (exemplo, se não tiver um PageTitle real)
 const PageTitle: React.FC<{ title: string }> = ({ title }) => (

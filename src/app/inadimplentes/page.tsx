@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import RenewButton from '../components/RenewButton';
-import DeleteButton from '../components/DeleteButton';
+import RenewButton from '../../components/RenewButton';
+import DeleteButton from '../../components/DeleteButton';
 
 
 // Componente de título simples (reutilizado)
