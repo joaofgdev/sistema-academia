@@ -1,60 +1,86 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, FormEvent } from 'react';
+import Image from 'next/image';
 
+// Componente principal da página de login
 export default function LoginPage() {
-  const router = useRouter();
-  const [usuario, setUsuario] = useState('');
-  const [senha, setSenha] = useState('');
-  const [erro, setErro] = useState('');
+  const [username, setUsername] = useState<string>(''); // Estado do usuário
+  const [password, setPassword] = useState<string>(''); // Estado da senha
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Função para lidar com o envio do formulário
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (usuario === 'admin' && senha === '1234') {
-      localStorage.setItem('isAuth', 'true');
-      router.push('/');
-    } else {
-      setErro('Usuário ou senha incorretos.');
-    }
+    console.log('Usuário:', username);
+    console.log('Senha:', password);
+    console.log('Login attempt! Check console for data.');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+    <div className="flex min-h-screen w-screen overflow-hidden">
+      {/* Lado esquerdo: Formulário */}
+      <div className="w-full lg:w-2/5 flex flex-col justify-center items-center p-8 bg-white rounded-r-[50px]">
+        <Image
+          src="/images/logo.png"
+          alt="Logo Studio Duo"
+          width={300}
+          height={80}
+          className="mb-10"
+        />
 
-        {erro && (
-          <div className="bg-red-100 text-red-600 p-2 mb-4 rounded text-center">
-            {erro}
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
+          {/* Usuário */}
+          <div>
+            <label htmlFor="username" className="block text-gray-700 text-lg font-medium mb-2">
+              Usuário
+            </label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="Digite seu usuário"
+              required
+            />
           </div>
-        )}
 
-        <form onSubmit={handleLogin}>
-          <label className="block mb-2 text-sm font-medium">Usuário</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded mb-4"
-            placeholder="Digite admin"
-            value={usuario}
-            onChange={(e) => setUsuario(e.target.value)}
-          />
+          {/* Senha */}
+          <div>
+            <label htmlFor="password" className="block text-black text-lg font-medium mb-2">
+              Senha:
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Digite sua senha"
+              required
+            />
+          </div>
 
-          <label className="block mb-2 text-sm font-medium">Senha</label>
-          <input
-            type="password"
-            className="w-full p-2 border border-gray-300 rounded mb-6"
-            placeholder="Digite 1234"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-          />
-
+          {/* Botão */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+            className="w-full bg-[#38BDF2] text-white py-3 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-semibold"
           >
             Entrar
           </button>
         </form>
+      </div>
+
+      {/* Lado direito: Imagem */}
+      <div className="hidden lg:block w-3/5 h-screen overflow-hidden relative rounded-l-[50px]">
+        <Image
+          src="/images/background.png"
+          alt="Fundo de Login"
+          fill
+          className="object-cover"
+          priority
+        />
       </div>
     </div>
   );
