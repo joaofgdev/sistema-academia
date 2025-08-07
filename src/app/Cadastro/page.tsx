@@ -84,11 +84,12 @@ const CadastroPage: React.FC = () => {
       await client.models.Aluno.create({
         nome_aluno: formData.nome,
         cpf: formData.cpf,
-        data_nascimento: new Date(formData.dataNascimento),
+        data_nascimento: new Date(formData.dataNascimento).toISOString().split('T')[0],
         telefone: formData.telefone,
         email: formData.email,
-        data_inicio_plano: new Date(formData.inicioPlano),
-        data_fim_plano: new Date(calculatedVencimentoPlano),
+        data_cadastro: new Date(formData.dataNascimento).toISOString().split('T')[0], // ← ADICIONADO
+        data_inicio_plano: new Date(formData.inicioPlano).toISOString().split('T')[0],
+        data_fim_plano: new Date(calculatedVencimentoPlano).toISOString().split('T')[0],
         informacoes_adicionais: '',
       });
 

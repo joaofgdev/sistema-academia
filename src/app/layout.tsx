@@ -8,7 +8,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 
 // ✅ IMPORTA O AMPLIFY
 import { Amplify } from 'aws-amplify';
-import amplifyconfig from '../amplifyconfiguration.json'; // ajuste o caminho se necessário
+import amplifyconfig from '../../amplify_outputs.json'; // ajuste o caminho se necessário
 
 // ✅ CONFIGURA O AMPLIFY FORA DO COMPONENTE
 Amplify.configure(amplifyconfig);
