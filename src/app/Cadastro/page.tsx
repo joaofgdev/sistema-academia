@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-// Assumindo que PageTitle e PrimaryButton estão em '../components/'
-// Se não existirem, você precisará criá-los ou usar elementos HTML simples.
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '@/amplify/data/resource';
 
-// Componente de título simples (exemplo, se não tiver um PageTitle real)
+const client = generateClient<Schema>();
+
 const PageTitle: React.FC<{ title: string }> = ({ title }) => (
   <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">{title}</h1>
 );
 
-// Componente de botão primário simples (exemplo, se não tiver um PrimaryButton real)
 const PrimaryButton: React.FC<{ children: React.ReactNode; type?: "button" | "submit" | "reset" }> = ({ children, type = "button" }) => (
   <button
     type={type}
@@ -21,7 +21,6 @@ const PrimaryButton: React.FC<{ children: React.ReactNode; type?: "button" | "su
   </button>
 );
 
-
 interface FormData {
   nome: string;
   cpf: string;
@@ -29,8 +28,8 @@ interface FormData {
   telefone: string;
   email: string;
   inicioPlano: string;
-  tipoPlano: 'Mensal' | 'Trimestral' | 'Anual' | ''; // Adicionado tipoPlano
-  vencimentoPlano: string; // Mantido aqui para o resultado final, mas não no input
+  tipoPlano: 'Mensal' | 'Trimestral' | 'Anual' | '';
+  vencimentoPlano: string;
 }
 
 const CadastroPage: React.FC = () => {
@@ -41,13 +40,12 @@ const CadastroPage: React.FC = () => {
     telefone: '',
     email: '',
     inicioPlano: '',
-    tipoPlano: '', // Inicializa tipoPlano
-    vencimentoPlano: '', // Será calculado
+    tipoPlano: '',
+    vencimentoPlano: '',
   });
 
   const [cadastrosList, setCadastrosList] = useState<FormData[]>([]);
 
-  // Handler para inputs de texto e data
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -56,13 +54,12 @@ const CadastroPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Lógica para calcular o vencimento do plano
     let calculatedVencimentoPlano = '';
     if (formData.inicioPlano && formData.tipoPlano) {
-      const startDate = new Date(formData.inicioPlano + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário
+      const startDate = new Date(formData.inicioPlano + 'T00:00:00');
       let endDate = new Date(startDate);
 
       switch (formData.tipoPlano) {
@@ -75,24 +72,37 @@ const CadastroPage: React.FC = () => {
         case 'Anual':
           endDate.setMonth(endDate.getMonth() + 12);
           break;
-        default:
-          break;
       }
 
-      // Formata a data de vencimento para 'YYYY-MM-DD'
       const year = endDate.getFullYear();
-      const month = String(endDate.getMonth() + 1).padStart(2, '0'); // Mês é 0-indexed
+      const month = String(endDate.getMonth() + 1).padStart(2, '0');
       const day = String(endDate.getDate()).padStart(2, '0');
       calculatedVencimentoPlano = `${year}-${month}-${day}`;
     }
 
-    // Adiciona o novo cadastro com o vencimento calculado
-    setCadastrosList((prevList) => [
-      ...prevList,
-      { ...formData, vencimentoPlano: calculatedVencimentoPlano },
-    ]);
+    try {
+      await client.models.Aluno.create({
+        nome_aluno: formData.nome,
+        cpf: formData.cpf,
+        data_nascimento: new Date(formData.dataNascimento),
+        telefone: formData.telefone,
+        email: formData.email,
+        data_inicio_plano: new Date(formData.inicioPlano),
+        data_fim_plano: new Date(calculatedVencimentoPlano),
+        informacoes_adicionais: '',
+      });
 
-    // Limpa o formulário
+      setCadastrosList((prevList) => [
+        ...prevList,
+        { ...formData, vencimentoPlano: calculatedVencimentoPlano },
+      ]);
+
+      alert('Aluno cadastrado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar no banco:', error);
+      alert('Erro ao cadastrar aluno.');
+    }
+
     setFormData({
       nome: '',
       cpf: '',
@@ -101,7 +111,7 @@ const CadastroPage: React.FC = () => {
       email: '',
       inicioPlano: '',
       tipoPlano: '',
-      vencimentoPlano: '', // Limpa também o vencimento para o próximo formulário
+      vencimentoPlano: '',
     });
   };
 
@@ -111,14 +121,12 @@ const CadastroPage: React.FC = () => {
         <PageTitle title="Cadastro de Alunos" />
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {[
-            { label: 'Nome', name: 'nome', type: 'text' },
+          {[{ label: 'Nome', name: 'nome', type: 'text' },
             { label: 'CPF', name: 'cpf', type: 'text' },
             { label: 'Data de Nascimento', name: 'dataNascimento', type: 'date' },
             { label: 'Telefone', name: 'telefone', type: 'tel' },
             { label: 'E-mail', name: 'email', type: 'email' },
-            { label: 'Início do Plano', name: 'inicioPlano', type: 'date' },
-            // Removido o campo 'Vencimento do Plano' do formulário
+            { label: 'Início do Plano', name: 'inicioPlano', type: 'date' }
           ].map((field) => (
             <div key={field.name}>
               <label htmlFor={field.name} className="block text-gray-700 text-sm font-medium mb-1">
@@ -136,7 +144,6 @@ const CadastroPage: React.FC = () => {
             </div>
           ))}
 
-          {/* Novo campo de seleção para o tipo de plano */}
           <div>
             <label htmlFor="tipoPlano" className="block text-gray-700 text-sm font-medium mb-1">
               Tipo de Plano:
@@ -178,8 +185,8 @@ const CadastroPage: React.FC = () => {
                   <p><strong>Telefone:</strong> {cadastro.telefone}</p>
                   <p><strong>Email:</strong> {cadastro.email}</p>
                   <p><strong>Início Plano:</strong> {cadastro.inicioPlano}</p>
-                  <p><strong>Tipo Plano:</strong> {cadastro.tipoPlano}</p> {/* Exibe o tipo de plano */}
-                  <p><strong>Venc. Plano:</strong> {cadastro.vencimentoPlano}</p> {/* Exibe o vencimento calculado */}
+                  <p><strong>Tipo Plano:</strong> {cadastro.tipoPlano}</p>
+                  <p><strong>Venc. Plano:</strong> {cadastro.vencimentoPlano}</p>
                 </li>
               ))}
             </ul>

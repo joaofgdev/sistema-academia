@@ -2,10 +2,16 @@
 
 import { usePathname } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
-import './globals.css'; // ✅ Importa o Tailwind
+import './globals.css';
 
-// (Opcional) Se estiver usando fontes do Google com next/font:
 import { Geist, Geist_Mono } from 'next/font/google';
+
+// ✅ IMPORTA O AMPLIFY
+import { Amplify } from 'aws-amplify';
+import amplifyconfig from '../amplifyconfiguration.json'; // ajuste o caminho se necessário
+
+// ✅ CONFIGURA O AMPLIFY FORA DO COMPONENTE
+Amplify.configure(amplifyconfig);
 
 const geistSans = Geist({
   subsets: ['latin'],
