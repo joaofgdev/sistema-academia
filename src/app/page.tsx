@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '@/amplify/data/resource'; // Ajuste o caminho se necessário
+
+// --- CORREÇÃO FINAL AQUI ---
+import type { Schema } from '@/amplify/data/resource';
+import { type SelectionSet } from 'aws-amplify/data';
 
 import RenewButton from '../components/RenewButton';
 import DeleteButton from '../components/DeleteButton';
@@ -15,16 +18,18 @@ const PageTitle: React.FC<{ title: string }> = ({ title }) => (
 // Crie o cliente do Amplify fora do componente
 const client = generateClient<Schema>();
 
+// Usamos SelectionSet para definir o tipo customizado
+type AlunoSelecionado = SelectionSet<Schema['Aluno']['type'], ['id', 'nome_aluno', 'telefone', 'data_fim_plano', 'cpf']>;
+
 const HomePage: React.FC = () => {
-  const [alunos, setAlunos] = useState<Schema['Aluno'][]>([]);
+  // Usamos o novo tipo no estado
+  const [alunos, setAlunos] = useState<AlunoSelecionado[]>([]);
 
   useEffect(() => {
     const fetchAlunos = async () => {
       try {
-        // --- ALTERAÇÃO AQUI ---
-        // Busca apenas os campos necessários usando o `selectionSet`.
         const { data: todosAlunos, errors } = await client.models.Aluno.list({
-          selectionSet: ['id', 'nome_aluno', 'telefone', 'data_fim_plano'],
+          selectionSet: ['id', 'nome_aluno', 'telefone', 'data_fim_plano', 'cpf'],
         });
 
         if (errors) {
@@ -42,10 +47,8 @@ const HomePage: React.FC = () => {
 
   const getStatusPlano = (vencimentoPlano: string | undefined | null): 'Ativo' | 'Inativo' => {
     if (!vencimentoPlano) return 'Inativo';
-    // Usando o horário local do Brasil para a comparação
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    // Ajusta a data de vencimento para não ter problemas com fuso horário
     const dataVencimento = new Date(vencimentoPlano + 'T00:00:00');
     return dataVencimento >= hoje ? 'Ativo' : 'Inativo';
   };
@@ -61,7 +64,6 @@ const HomePage: React.FC = () => {
         data_fim_plano: novaDataFimPlano,
       });
 
-      // Atualiza o estado local de forma segura
       setAlunos((prevAlunos) =>
         prevAlunos.map((aluno) =>
           aluno.id === alunoId
@@ -74,10 +76,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // --- NOVA FUNÇÃO ---
-  // Função para deletar um aluno
   const handleDeleteStudent = async (alunoId: string) => {
-    // Adiciona uma confirmação para evitar exclusões acidentais
     if (!window.confirm('Tem certeza de que deseja excluir este aluno?')) {
       return;
     }
@@ -85,7 +84,6 @@ const HomePage: React.FC = () => {
     try {
       await client.models.Aluno.delete({ id: alunoId });
 
-      // Remove o aluno da lista na interface
       setAlunos((prevAlunos) =>
         prevAlunos.filter((aluno) => aluno.id !== alunoId)
       );
@@ -96,7 +94,7 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-5x1 mx-auto">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-5xl mx-auto">
         <PageTitle title="Central de Alunos" />
 
         {alunos.length === 0 ? (
@@ -127,11 +125,14 @@ const HomePage: React.FC = () => {
                       {aluno.data_fim_plano ? new Date(aluno.data_fim_plano + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <RenewButton onClick={() => handleRenewPlan(aluno.id)} />
-                      {/* --- ALTERAÇÃO AQUI ---
-                          Passando o `id` para a função de deletar.
-                          É mais eficiente e seguro deletar pelo ID único do registro. */}
-                      <DeleteButton onClick={() => handleDeleteStudent(aluno.id)} />
+                      {aluno.id ? (
+                        <>
+                          <RenewButton onClick={() => handleRenewPlan(aluno.id)} />
+                          <DeleteButton onClick={() => handleDeleteStudent(aluno.id)} />
+                        </>
+                      ) : (
+                        <span className="text-xs text-red-500">Erro: ID não encontrado</span>
+                      )}
                     </td>
                   </tr>
                 ))}
