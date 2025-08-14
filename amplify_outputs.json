@@ -221,7 +221,8 @@
                     "provider": "iam",
                     "operations": [
                       "create",
-                      "read"
+                      "read",
+                      "delete"
                     ]
                   }
                 ]
