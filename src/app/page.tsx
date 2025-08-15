@@ -77,10 +77,6 @@ const HomePage: React.FC = () => {
   };
 
   const handleDeleteStudent = async (alunoId: string) => {
-    if (!window.confirm('Tem certeza de que deseja excluir este aluno?')) {
-      return;
-    }
-
     try {
       await client.models.Aluno.delete({ id: alunoId });
 
