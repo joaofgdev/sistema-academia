@@ -26,7 +26,7 @@ const schema = a.schema({
     // AQUI está a correção: use allow.guest() para permitir acesso público
     .authorization((allow) => [
       allow.authenticated(),
-      allow.guest().to(['create', 'read', 'delete'])
+      allow.guest().to(['create', 'read', 'delete', 'update'])
     ])
 });
 

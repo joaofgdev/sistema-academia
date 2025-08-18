@@ -7,19 +7,18 @@ import { type SelectionSet } from 'aws-amplify/data';
 import RenewButton from '../components/RenewButton';
 import DeleteButton from '../components/DeleteButton';
 
-// Componente de título
 const PageTitle: React.FC<{ title: string }> = ({ title }) => (
   <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">{title}</h1>
 );
 
-// Crie o cliente do Amplify fora do componente
 const client = generateClient<Schema>();
 
-// Usamos SelectionSet para definir o tipo customizado
-type AlunoSelecionado = SelectionSet<Schema['Aluno']['type'], ['id', 'nome_aluno', 'telefone', 'data_fim_plano', 'tipo_plano', 'cpf', 'email']>;
+type AlunoSelecionado = SelectionSet<
+  Schema['Aluno']['type'],
+  ['id', 'nome_aluno', 'telefone', 'data_fim_plano', 'tipo_plano', 'cpf', 'email']
+>;
 
 const HomePage: React.FC = () => {
-  // Estados para gerenciar dados e loading
   const [alunos, setAlunos] = useState<AlunoSelecionado[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +31,6 @@ const HomePage: React.FC = () => {
     return dataVencimento >= hoje ? 'Ativo' : 'Inativo';
   };
 
-  /**
-   * Busca todos os alunos do banco de dados
-   */
   const fetchAlunos = async () => {
     try {
       setLoading(true);
@@ -60,9 +56,6 @@ const HomePage: React.FC = () => {
     }
   };
 
-  /**
-   * Renova o plano de um aluno (atualiza data_fim_plano para +30 dias)
-   */
   const handleRenewPlan = async (aluno: any) => {
     try {
       setError(null);
@@ -91,37 +84,28 @@ const HomePage: React.FC = () => {
     }
   };
 
-  /**
-   * Deleta um aluno do banco de dados
-   */
   const handleDeleteStudent = async (alunoId: string) => {
     try {
       setError(null);
-
       const response = await client.models.Aluno.delete({ id: alunoId });
-
       if (response.errors) {
         console.error('Erros ao deletar aluno:', response.errors);
         setError('Erro ao excluir aluno do banco de dados');
         return;
       }
-
       setAlunos((prevAlunos) =>
         prevAlunos.filter((aluno) => aluno.id !== alunoId)
       );
-      
     } catch (error) {
       console.error('Erro ao deletar aluno:', error);
       setError('Erro ao excluir aluno');
     }
   };
 
-  // Carrega os dados quando o componente monta
   useEffect(() => {
     fetchAlunos();
   }, []);
 
-  // Mostra loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
@@ -136,13 +120,12 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-6xl">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-5">
+      <div className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-6xl mx-auto border border-gray-100">
         <PageTitle title="Central de Alunos" />
 
-        {/* Mostra erros se houver */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600">{error}</p>
             <button 
               onClick={fetchAlunos}
@@ -160,84 +143,92 @@ const HomePage: React.FC = () => {
             <p className="text-gray-600">Cadastre o primeiro aluno para começar.</p>
           </div>
         ) : (
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-4">
-              {alunos.length} aluno{alunos.length > 1 ? 's' : ''} cadastrado{alunos.length > 1 ? 's' : ''}.
-            </p>
-            
-            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nome
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Telefone
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vencimento
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {alunos.map((aluno) => (
-                    <tr key={aluno.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {aluno.nome_aluno}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {aluno.telefone || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {aluno.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          getStatusPlano(aluno.data_fim_plano) === 'Ativo' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {getStatusPlano(aluno.data_fim_plano)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {aluno.data_fim_plano ? new Date(aluno.data_fim_plano + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        {aluno.id ? (
+          <>
+            {/* Versão Desktop - Tabela */}
+            <div className="hidden md:block mb-6">
+              <p className="text-sm text-gray-600 mb-4">
+                {alunos.length} aluno{alunos.length > 1 ? 's' : ''} cadastrado{alunos.length > 1 ? 's' : ''}.
+              </p>
+              <div className="rounded-lg border border-gray-200 shadow-sm overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimento</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {alunos.map((aluno) => (
+                      <tr key={aluno.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{aluno.nome_aluno}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{aluno.telefone || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{aluno.email}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
+                            getStatusPlano(aluno.data_fim_plano) === 'Ativo' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {getStatusPlano(aluno.data_fim_plano)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {aluno.data_fim_plano ? new Date(aluno.data_fim_plano + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm font-medium">
                           <div className="flex justify-center items-center space-x-2">
                             <RenewButton onClick={() => handleRenewPlan(aluno)} />
                             <DeleteButton onClick={() => handleDeleteStudent(aluno.id)} />
                           </div>
-                        ) : (
-                          <span className="text-xs text-red-500">Erro: ID não encontrado</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Versão Mobile - Cards */}
+            <div className="block md:hidden space-y-4">
+              {alunos.map((aluno) => (
+                <div key={aluno.id} className="p-4 rounded-lg border border-gray-200 shadow-sm bg-gray-50">
+                  <p className="text-lg font-semibold text-gray-900">{aluno.nome_aluno}</p>
+                  <p className="text-sm text-gray-700"><strong>Telefone:</strong> {aluno.telefone || '-'}</p>
+                  <p className="text-sm text-gray-700"><strong>Email:</strong> {aluno.email}</p>
+                  <p className="text-sm">
+                    <strong>Status:</strong>{' '}
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                      getStatusPlano(aluno.data_fim_plano) === 'Ativo'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {getStatusPlano(aluno.data_fim_plano)}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Vencimento:</strong>{' '}
+                    {aluno.data_fim_plano ? new Date(aluno.data_fim_plano + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
+                  </p>
+                  <div className="flex space-x-2 mt-3">
+                    <RenewButton onClick={() => handleRenewPlan(aluno)} />
+                    <DeleteButton onClick={() => handleDeleteStudent(aluno.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
-        
-        {/* Botão para recarregar dados */}
+
         <div className="mt-6 text-center">
           <button
             onClick={fetchAlunos}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            🔄 Atualizar Lista
+            Atualizar Lista
           </button>
         </div>
       </div>
