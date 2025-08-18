@@ -20,6 +20,7 @@ const schema = a.schema({
       data_cadastro: a.date().required(),
       data_inicio_plano: a.date().required(),
       data_fim_plano: a.date().required(), // esse será calculado via código e salvo no banco
+      tipo_plano: a.enum(['MENSAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL']),
       informacoes_adicionais: a.string(),
     })
     // AQUI está a correção: use allow.guest() para permitir acesso público

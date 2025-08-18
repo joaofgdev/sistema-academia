@@ -172,6 +172,15 @@
               "isRequired": true,
               "attributes": []
             },
+            "tipo_plano": {
+              "name": "tipo_plano",
+              "isArray": false,
+              "type": {
+                "enum": "AlunoTipo_plano"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
             "informacoes_adicionais": {
               "name": "informacoes_adicionais",
               "isArray": false,
@@ -236,7 +245,17 @@
           }
         }
       },
-      "enums": {},
+      "enums": {
+        "AlunoTipo_plano": {
+          "name": "AlunoTipo_plano",
+          "values": [
+            "MENSAL",
+            "TRIMESTRAL",
+            "SEMESTRAL",
+            "ANUAL"
+          ]
+        }
+      },
       "nonModels": {}
     }
   },

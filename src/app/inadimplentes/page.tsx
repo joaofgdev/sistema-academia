@@ -1,182 +1,272 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '@/amplify/data/resource'; // Ajuste o caminho conforme sua estrutura
 import RenewButton from '../../components/RenewButton';
 import DeleteButton from '../../components/DeleteButton';
 
+// Gera o cliente do Amplify
+const client = generateClient<Schema>();
+
+// Tipo para os dados do aluno baseado no schema
+type AlunoData = Schema['Aluno']['type'];
 
 // Componente de título simples (reutilizado)
 const PageTitle: React.FC<{ title: string }> = ({ title }) => (
   <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">{title}</h1>
 );
 
-// Interface para os dados do aluno (reutilizada)
-interface AlunoData {
-  nome: string;
-  cpf: string;
-  dataNascimento: string;
-  telefone: string;
-  email: string;
-  inicioPlano: string;
-  tipoPlano: 'Mensal' | 'Trimestral' | 'Anual' | '';
-  vencimentoPlano: string;
-}
-
 const InadimplentesPage: React.FC = () => {
-  // Estado para armazenar a lista de todos os alunos.
-  // Para fins de demonstração, usamos dados mockados.
-  // Em uma aplicação real, esses dados viriam de uma fonte persistente (ex: Firestore).
-  const [alunos, setAlunos] = useState<AlunoData[]>([
-    {
-      nome: 'Maria Oliveira',
-      cpf: '111.222.333-44',
-      dataNascimento: '2000-01-15',
-      telefone: '(46) 9999-0000',
-      email: 'maria.o@example.com',
-      inicioPlano: '2025-06-01',
-      tipoPlano: 'Mensal',
-      vencimentoPlano: '2025-07-01', // Ativo (para testar o filtro)
-    },
-    {
-      nome: 'Pedro Souza',
-      cpf: '555.666.777-88',
-      dataNascimento: '1998-03-20',
-      telefone: '(46) 9999-0001',
-      email: 'pedro.s@example.com',
-      inicioPlano: '2025-03-16',
-      tipoPlano: 'Trimestral',
-      vencimentoPlano: '2025-06-16', // Inativo (vencido antes de hoje)
-    },
-    {
-      nome: 'Ana Paula',
-      cpf: '999.888.777-66',
-      dataNascimento: '2001-11-05',
-      telefone: '(46) 9999-0002',
-      email: 'ana.p@example.com',
-      inicioPlano: '2025-01-10',
-      tipoPlano: 'Anual',
-      vencimentoPlano: '2026-01-10', // Ativo
-    },
-    {
-      nome: 'Carlos Silva',
-      cpf: '123.456.789-00',
-      dataNascimento: '1995-07-01',
-      telefone: '(46) 9999-0003',
-      email: 'carlos.s@example.com',
-      inicioPlano: '2024-12-01',
-      tipoPlano: 'Mensal',
-      vencimentoPlano: '2025-01-01', // Inativo
-    },
-  ]);
-
-  // Estado para armazenar apenas os alunos inadimplentes (filtrados)
+  // Estados para gerenciar dados e loading
+  const [alunos, setAlunos] = useState<AlunoData[]>([]);
   const [inadimplentes, setInadimplentes] = useState<AlunoData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   /**
    * Calcula o status do plano (Ativo/Inativo) com base na data de vencimento.
-   * @param {string} vencimentoPlano - A data de vencimento do plano no formato 'YYYY-MM-DD'.
-   * @returns {'Ativo' | 'Inativo'} O status do plano.
    */
-  const getStatusPlano = (vencimentoPlano: string): 'Ativo' | 'Inativo' => {
+  const getStatusPlano = (dataFimPlano: string): 'Ativo' | 'Inativo' => {
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Zera a hora para comparação apenas de data
-    const dataVencimento = new Date(vencimentoPlano + 'T00:00:00');
+    hoje.setHours(0, 0, 0, 0);
+    const dataVencimento = new Date(dataFimPlano);
     return dataVencimento >= hoje ? 'Ativo' : 'Inativo';
   };
 
-  // Efeito para filtrar os alunos sempre que a lista de 'alunos' mudar
-  useEffect(() => {
-    const filtered = alunos.filter(aluno => getStatusPlano(aluno.vencimentoPlano) === 'Inativo');
-    setInadimplentes(filtered);
-  }, [alunos]); // Dependência: 'alunos'
+  /**
+   * Busca todos os alunos do banco de dados
+   */
+  const fetchAlunos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await client.models.Aluno.list();
+      
+      if (response.errors) {
+        console.error('Erros ao buscar alunos:', response.errors);
+        setError('Erro ao carregar alunos do banco de dados');
+        return;
+      }
+
+      const alunosData = response.data || [];
+      setAlunos(alunosData);
+      
+      // Filtra apenas os inadimplentes
+      const filtered = alunosData.filter(aluno => 
+        getStatusPlano(aluno.data_fim_plano) === 'Inativo'
+      );
+      setInadimplentes(filtered);
+      
+    } catch (err) {
+      console.error('Erro ao buscar alunos:', err);
+      setError('Erro ao conectar com o banco de dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /**
-   * Lida com a renovação do plano de um aluno específico.
-   * Atualiza a data de vencimento para 30 dias a partir da data atual.
-   * @param {string} cpf - O CPF do aluno a ser renovado (usado como identificador único).
+   * Deleta um aluno do banco de dados
    */
-  const handleRenewPlan = (cpf: string) => {
-    setAlunos((prevAlunos) => {
-      return prevAlunos.map((aluno) => {
-        if (aluno.cpf === cpf) {
-          const today = new Date();
-          today.setDate(today.getDate() + 30); // Adiciona 30 dias
+  const handleDeleteStudent = async (alunoId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita.')) {
+      return;
+    }
 
-          const year = today.getFullYear();
-          const month = String(today.getMonth() + 1).padStart(2, '0');
-          const day = String(today.getDate()).padStart(2, '0');
-          return { ...aluno, vencimentoPlano: `${year}-${month}-${day}` };
-        }
-        return aluno;
+    try {
+      setError(null);
+      
+      const response = await client.models.Aluno.delete({ id: alunoId });
+      
+      if (response.errors) {
+        console.error('Erros ao deletar aluno:', response.errors);
+        setError('Erro ao excluir aluno do banco de dados');
+        return;
+      }
+
+      // Remove o aluno dos estados locais
+      setAlunos(prevAlunos => prevAlunos.filter(aluno => aluno.id !== alunoId));
+      setInadimplentes(prevInadimplentes => prevInadimplentes.filter(aluno => aluno.id !== alunoId));
+      
+      // Opcional: Mostrar mensagem de sucesso
+      alert('Aluno excluído com sucesso!');
+      
+    } catch (err) {
+      console.error('Erro ao deletar aluno:', err);
+      setError('Erro ao excluir aluno');
+    }
+  };
+
+  /**
+   * Renova o plano de um aluno (atualiza data_fim_plano para +30 dias)
+   */
+  const handleRenewPlan = async (alunoId: string) => {
+    try {
+      setError(null);
+      
+      // Calcula nova data de vencimento (30 dias a partir de hoje)
+      const today = new Date();
+      today.setDate(today.getDate() + 30);
+      const newDataFim = today.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      
+      const response = await client.models.Aluno.update({
+        id: alunoId,
+        data_fim_plano: newDataFim
       });
-    });
+      
+      if (response.errors) {
+        console.error('Erros ao renovar plano:', response.errors);
+        setError('Erro ao renovar plano do aluno');
+        return;
+      }
+
+      // Atualiza os estados locais
+      const updatedAluno = response.data;
+      if (updatedAluno) {
+        setAlunos(prevAlunos => 
+          prevAlunos.map(aluno => 
+            aluno.id === alunoId ? updatedAluno : aluno
+          )
+        );
+        
+        // Remove da lista de inadimplentes (agora está ativo)
+        setInadimplentes(prevInadimplentes => 
+          prevInadimplentes.filter(aluno => aluno.id !== alunoId)
+        );
+      }
+      
+      alert('Plano renovado com sucesso!');
+      
+    } catch (err) {
+      console.error('Erro ao renovar plano:', err);
+      setError('Erro ao renovar plano do aluno');
+    }
   };
 
-  /**
-   * Lida com a exclusão de um aluno da lista.
-   * @param {string} cpf - O CPF do aluno a ser excluído.
-   */
-  const handleDeleteStudent = (cpf: string) => {
-    setAlunos((prevAlunos) => prevAlunos.filter(aluno => aluno.cpf !== cpf));
-  };
+  // Carrega os dados quando o componente monta
+  useEffect(() => {
+    fetchAlunos();
+  }, []);
+
+  // Mostra loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-lg shadow-xl">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Carregando alunos...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-6xl">
         <PageTitle title="Central de Inadimplentes" />
 
-        {inadimplentes.length === 0 ? (
-          <p className="text-center text-gray-600">Nenhum aluno inadimplente encontrado.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nome
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Telefone
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vencimento
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ação
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {inadimplentes.map((aluno) => (
-                  <tr key={aluno.cpf} className="hover:bg-gray-50"> {/* Usando CPF como key */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {aluno.nome}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {aluno.telefone}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                        ${getStatusPlano(aluno.vencimentoPlano) === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {getStatusPlano(aluno.vencimentoPlano)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {new Date(aluno.vencimentoPlano + 'T00:00:00').toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium flex justify-center items-center">
-                      <RenewButton onClick={() => handleRenewPlan(aluno.cpf)} />
-                      <DeleteButton onClick={() => handleDeleteStudent(aluno.cpf)} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Mostra erros se houver */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{error}</p>
+            <button 
+              onClick={fetchAlunos}
+              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Tentar Novamente
+            </button>
           </div>
         )}
+
+        {inadimplentes.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-6xl mb-4">🎉</div>
+            <p className="text-xl text-gray-600 mb-2">Parabéns!</p>
+            <p className="text-gray-600">Nenhum aluno inadimplente encontrado.</p>
+          </div>
+        ) : (
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 mb-4">
+              {inadimplentes.length} aluno{inadimplentes.length > 1 ? 's' : ''} inadimplente{inadimplentes.length > 1 ? 's' : ''} encontrado{inadimplentes.length > 1 ? 's' : ''}.
+            </p>
+            
+            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nome
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      CPF
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Telefone
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vencimento
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {inadimplentes.map((aluno) => (
+                    <tr key={aluno.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {aluno.nome_aluno}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {aluno.cpf}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {aluno.telefone || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {aluno.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                          Inativo
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {new Date(aluno.data_fim_plano).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div className="flex justify-center items-center space-x-2">
+                          <RenewButton onClick={() => handleRenewPlan(aluno.id)} />
+                          <DeleteButton onClick={() => handleDeleteStudent(aluno.id)} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        {/* Botão para recarregar dados */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={fetchAlunos}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            🔄 Atualizar Lista
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -32,6 +32,8 @@ interface FormData {
   vencimentoPlano: string;
 }
 
+// CadastroPage component 
+
 const CadastroPage: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     nome: '',
@@ -45,7 +47,7 @@ const CadastroPage: React.FC = () => {
   });
 
   const [cadastrosList, setCadastrosList] = useState<FormData[]>([]);
-
+// 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -90,9 +92,10 @@ const CadastroPage: React.FC = () => {
         data_cadastro: new Date(formData.dataNascimento).toISOString().split('T')[0], // ← ADICIONADO
         data_inicio_plano: new Date(formData.inicioPlano).toISOString().split('T')[0],
         data_fim_plano: new Date(calculatedVencimentoPlano).toISOString().split('T')[0],
+        tipo_plano: formData.tipoPlano.toUpperCase() as 'MENSAL' | 'TRIMESTRAL' | 'ANUAL',
         informacoes_adicionais: '',
       });
-
+// 
       setCadastrosList((prevList) => [
         ...prevList,
         { ...formData, vencimentoPlano: calculatedVencimentoPlano },
@@ -160,7 +163,7 @@ const CadastroPage: React.FC = () => {
                          sm:text-base text-sm"
               required
             >
-              <option value="">-- Selecione o Tipo de Plano --</option>
+              <option value=""> Selecione o Tipo de Plano </option>
               <option value="Mensal">Mensal</option>
               <option value="Trimestral">Trimestral</option>
               <option value="Anual">Anual</option>
