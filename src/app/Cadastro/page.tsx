@@ -106,7 +106,6 @@ const CadastroPage: React.FC = () => {
       console.error('Erro ao salvar no banco:', error);
       alert('Erro ao cadastrar aluno.');
     }
-
     setFormData({
       nome: '',
       cpf: '',
