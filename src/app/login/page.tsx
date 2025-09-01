@@ -1,18 +1,44 @@
 'use client';
 import React, { useState, FormEvent } from 'react';
 import Image from 'next/image';
+import { signIn } from 'next-auth/react'; // 1. Importar a função signIn
+import { useRouter } from 'next/navigation'; // 2. Importar o hook de navegação
 
 // Componente principal da página de login
 export default function LoginPage() {
-  const [username, setUsername] = useState<string>(''); // Estado do usuário
-  const [password, setPassword] = useState<string>(''); // Estado da senha
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<string | null>(null); // 3. Estado para a mensagem de erro
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Estado para o carregamento
+  const router = useRouter(); // Instância do router
 
-  // Função para lidar com o envio do formulário
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // 4. Lógica de login atualizada para usar o NextAuth
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Usuário:', username);
-    console.log('Senha:', password);
-    console.log('Login attempt! Check console for data.');
+    setError(null); // Limpa erros antigos
+    setIsLoading(true); // Inicia o carregamento
+
+    try {
+      const result = await signIn('credentials', {
+        redirect: false, // Importante para lidar com o erro aqui mesmo
+        username: username,
+        password: password,
+      });
+
+      if (result?.error) {
+        // Se o NextAuth retornar um erro (usuário/senha errados), exibe a mensagem
+        setError('Usuário ou senha inválidos.');
+        setIsLoading(false); // Para o carregamento
+      } else {
+        // Se o login for bem-sucedido, redireciona para a página principal
+        router.push('/'); // Ou para '/dashboard', etc.
+      }
+    } catch (err) {
+      // Caso ocorra um erro inesperado
+      console.error(err);
+      setError('Ocorreu um erro inesperado. Tente novamente.');
+      setIsLoading(false); // Para o carregamento
+    }
   };
 
   return (
@@ -25,6 +51,7 @@ export default function LoginPage() {
           width={300}
           height={80}
           className="mb-10"
+          priority
         />
 
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
@@ -42,6 +69,7 @@ export default function LoginPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               placeholder="Digite seu usuário"
               required
+              disabled={isLoading} // Desabilita o campo durante o carregamento
             />
           </div>
 
@@ -59,15 +87,22 @@ export default function LoginPage() {
               className="w-full px-4 py-3 text-black border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Digite sua senha"
               required
+              disabled={isLoading} // Desabilita o campo durante o carregamento
             />
           </div>
+
+          {/* 5. Exibir a mensagem de erro, se houver */}
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
 
           {/* Botão */}
           <button
             type="submit"
-            className="w-full bg-[#38BDF2] text-white py-3 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-semibold"
+            className="w-full bg-[#38BDF2] text-white py-3 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-semibold disabled:bg-gray-400"
+            disabled={isLoading} // Desabilita o botão durante o carregamento
           >
-            Entrar
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
       </div>
