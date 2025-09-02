@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { NextAuthOptions } from "next-auth";
 
 // Lista de usuários
 const users = [
@@ -9,7 +10,7 @@ const users = [
 ];
 
 // Configuração do NextAuth
-export const authOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -17,27 +18,42 @@ export const authOptions = {
         username: { label: "Usuário", type: "text" },
         password: { label: "Senha", type: "password" }
       },
-      async authorize(credentials: any) {
+      async authorize(credentials) {
         if (!credentials) return null;
+        
         const userFound = users.find(user => user.username === credentials.username);
-        if (!userFound) throw new Error("Usuário não encontrado.");
-        if (userFound.password !== credentials.password) throw new Error("Senha incorreta.");
-        return userFound;
+        
+        if (!userFound) {
+          throw new Error("Usuário não encontrado.");
+        }
+        
+        if (userFound.password !== credentials.password) {
+          throw new Error("Senha incorreta.");
+        }
+        
+        return {
+          id: userFound.id,
+          name: userFound.name,
+          username: userFound.username,
+          role: userFound.role,
+        };
       }
     })
   ],
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.role = (user as any).role;
+        token.username = (user as any).username;
       }
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session?.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).username = token.username;
       }
       return session;
     }
@@ -48,6 +64,8 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// Exportando direto
-export const GET = NextAuth(authOptions);
-export const POST = NextAuth(authOptions);
+// Criando o handler
+const handler = NextAuth(authOptions);
+
+// Exportando as funções HTTP
+export { handler as GET, handler as POST };
