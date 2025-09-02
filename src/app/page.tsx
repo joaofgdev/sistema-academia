@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
-import { authOptions } from "../app/lib/auth"; // Ajuste o caminho conforme necessário
+import { authOptions } from "@/lib/auth"; // Ajuste o caminho conforme necessário
 import AlunosClientPage from "./alunos/AlunosClientPage"; // 1. Importe seu componente cliente
 
 // Este é o Componente Servidor que protege a rota
